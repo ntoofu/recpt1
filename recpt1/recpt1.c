@@ -503,9 +503,9 @@ void
 show_usage(char *cmd)
 {
 #ifdef HAVE_LIBARIB25
-    fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--device devicefile] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+    fprintf(stderr, "Usage: \n%s [--b25 [--round N] [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--http portnumber] [--device devicefile] [--lnb voltage] [--sid SID1,SID2] [--pidfile filepath] channel rectime destfile\n", cmd);
 #else
-    fprintf(stderr, "Usage: \n%s [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--device devicefile] [--lnb voltage] [--sid SID1,SID2] channel rectime destfile\n", cmd);
+    fprintf(stderr, "Usage: \n%s [--strip] [--EMM]] [--udp [--addr hostname --port portnumber]] [--device devicefile] [--lnb voltage] [--sid SID1,SID2] [--pidfile filepath] channel rectime destfile\n", cmd);
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "Remarks:\n");
@@ -530,6 +530,7 @@ show_options(void)
     fprintf(stderr, "--device devicefile: Specify devicefile to use\n");
     fprintf(stderr, "--lnb voltage:       Specify LNB voltage (0, 11, 15)\n");
     fprintf(stderr, "--sid SID1,SID2,...: Specify SID number in CSV format (101,102,...)\n");
+    fprintf(stderr, "--pidfile filepath: Specify SID number in CSV format (101,102,...)\n");
     fprintf(stderr, "--help:              Show this help\n");
     fprintf(stderr, "--version:           Show version\n");
     fprintf(stderr, "--list:              Show channel list\n");
@@ -649,6 +650,7 @@ main(int argc, char **argv)
         { "version",   0, NULL, 'v'},
         { "list",      0, NULL, 'l'},
         { "sid",       1, NULL, 'i'},
+        { "pidfile",   1, NULL, 'P'},
         {0, 0, NULL, 0} /* terminate */
     };
 
@@ -658,6 +660,7 @@ main(int argc, char **argv)
     boolean fileless = FALSE;
     boolean use_stdout = FALSE;
     boolean use_splitter = FALSE;
+    boolean use_pidfile = FALSE;
     char *host_to = NULL;
     int port_to = 1234;
     int port_http = 12345;
@@ -666,11 +669,12 @@ main(int argc, char **argv)
     int val;
     char *voltage[] = {"0V", "11V", "15V"};
     char *sid_list = NULL;
+    char *pidfile_path = NULL;
     int connected_socket = 0, listening_socket = 0;
     unsigned int len;
     char *channel = NULL;
 
-    while((result = getopt_long(argc, argv, "br:smn:ua:H:p:d:hvli:",
+    while((result = getopt_long(argc, argv, "br:smn:ua:H:p:d:hvli:P:",
                                 long_options, &option_index)) != -1) {
         switch(result) {
         case 'b':
@@ -751,6 +755,10 @@ main(int argc, char **argv)
             use_splitter = TRUE;
             sid_list = optarg;
             break;
+        case 'P':
+	    use_pidfile = TRUE;
+            pidfile_path = optarg;
+            break;
         }
     }
 
@@ -799,6 +807,22 @@ main(int argc, char **argv)
         }
         if(tdata.recsec == -1)
             tdata.indefinite = TRUE;
+
+        //output pid file
+	if( use_pidfile ) {
+		fprintf(stderr,"PID File: %s\n",pidfile_path);
+		char pid_str[6];
+		int pid_str_len = sprintf(pid_str, "%d", getpid());
+		int pid_file_fd = open(pidfile_path, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+		if( pid_file_fd == -1 ) {
+		    fprintf(stderr,"cannot create PID file\n");
+		    return 1;
+		}
+		write(pid_file_fd, pid_str, pid_str_len);
+		write(pid_file_fd, "\n", 1);
+		close(pid_file_fd);
+	}
+
     }else{    // -http-server add
         if(argc - optind < 3) {
             if(argc - optind == 2 && use_udp) {

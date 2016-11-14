@@ -1,0 +1,13 @@
+[Unit]
+Description=recpt1 http listener for the terrestrial broadcasting
+
+[Service]
+Type=forking
+PIDFile=/var/run/recpt1-http-terrestrial.pid
+ExecStart=/usr/local/bin/recpt1 --b25 --strip --http 8889 --device /dev/pt1video3
+ExecStop=/bin/kill -QUIT $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

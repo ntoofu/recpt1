@@ -1,0 +1,13 @@
+[Unit]
+Description=recpt1 http listener for the satellite broadcasting
+
+[Service]
+Type=forking
+PIDFile=/var/run/recpt1-http-satellite.pid
+ExecStart=/usr/local/bin/recpt1 --b25 --strip --http 8888 --device /dev/pt1video1
+ExecStop=/bin/kill -QUIT $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
